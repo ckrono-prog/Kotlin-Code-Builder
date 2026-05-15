@@ -22,13 +22,19 @@ data class User(
     val postsCount: Int = 0,
     val joinedAt: String = "",
     val isFollowedByMe: Boolean = false,
+    val isFollowingMe: Boolean = false,
+    val isBlockedByMe: Boolean = false,
     val isPrivate: Boolean = false,
     val website: String = "",
     val pronouns: String = "",
+    val gender: String = "",
+    val birthday: String = "",
     val creatorLevel: Int = 0,
     val totalEarnings: Double = 0.0,
     val totalLikes: Long = 0L,
     val totalViews: Long = 0L,
+    // Names of mutual friends who also follow this user (for Friends screen)
+    val followedBy: List<String> = emptyList(),
 )
 
 @Serializable
@@ -54,6 +60,7 @@ data class Post(
     val aspectRatio: Float = 1f,
     val isPinned: Boolean = false,
     val visibility: PostVisibility = PostVisibility.PUBLIC,
+    val commentPermission: CommentPermission = CommentPermission.EVERYONE,
     val reelsData: ReelsData? = null,
 )
 
@@ -122,6 +129,8 @@ data class Comment(
     val text: String = "",
     val likesCount: Int = 0,
     val isLikedByMe: Boolean = false,
+    val parentId: String? = null,
+    val repliesCount: Int = 0,
     val replies: List<Comment> = emptyList(),
     val createdAt: String = "",
 )
@@ -154,6 +163,7 @@ data class Conversation(
     val groupName: String? = null,
     val groupAvatarUrl: String? = null,
     val isMuted: Boolean = false,
+    val isArchived: Boolean = false,
     val theme: String = "default",
     val isEncrypted: Boolean = true,
 )
@@ -253,7 +263,18 @@ data class Product(
 // ──────────────────────────────────────────────────────────────────────────────
 
 enum class MediaType { IMAGE, VIDEO, CAROUSEL, REEL, AUDIO }
-enum class PostVisibility { PUBLIC, FOLLOWERS, CLOSE_FRIENDS, PRIVATE }
+enum class PostVisibility(val label: String) {
+    PUBLIC("Everyone"),
+    FOLLOWERS("Followers"),
+    CLOSE_FRIENDS("Close Friends"),
+    PRIVATE("Only Me"),
+}
+enum class CommentPermission(val label: String) {
+    EVERYONE("Everyone"),
+    FOLLOWERS("Followers"),
+    CLOSE_FRIENDS("Close Friends"),
+    NO_ONE("No One"),
+}
 enum class ConversationType { DIRECT, GROUP }
 enum class NotificationType {
     LIKE, COMMENT, FOLLOW, MENTION, SHARE, LIVE, STORY_REACT,

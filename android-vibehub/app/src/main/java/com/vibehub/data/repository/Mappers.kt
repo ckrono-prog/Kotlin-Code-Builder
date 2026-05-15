@@ -18,6 +18,7 @@ fun RemoteUser.toEntity() = UserEntity(
     location = location, isVerified = isVerified, isPremium = isPremium,
     followersCount = followersCount, followingCount = followingCount,
     postsCount = postsCount, joinedAt = joinedAt, isFollowedByMe = false,
+    isFollowingMe = false, isBlockedByMe = false,
     isPrivate = isPrivate, website = website, pronouns = pronouns,
 )
 
@@ -68,8 +69,9 @@ fun UserEntity.toDomain() = User(
     location = location, isVerified = isVerified, isPremium = isPremium,
     followersCount = followersCount, followingCount = followingCount,
     postsCount = postsCount, joinedAt = joinedAt,
-    isFollowedByMe = isFollowedByMe, isPrivate = isPrivate,
-    website = website, pronouns = pronouns,
+    isFollowedByMe = isFollowedByMe, isFollowingMe = isFollowingMe,
+    isBlockedByMe = isBlockedByMe, isPrivate = isPrivate,
+    website = website, pronouns = pronouns, gender = gender, birthday = birthday,
 )
 
 fun PostEntity.toDomain(authorUser: User = User()) = Post(

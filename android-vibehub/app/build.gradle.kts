@@ -105,9 +105,14 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
 
-    // ExoPlayer
+    // ExoPlayer / Media3
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation("androidx.media3:media3-datasource-cache:1.3.1")
+    implementation("androidx.media3:media3-database:1.3.1")
+
+    // CameraX Video
+    implementation("androidx.camera:camera-video:1.3.3")
 
     // Accompanist
     implementation(libs.accompanist.permissions)

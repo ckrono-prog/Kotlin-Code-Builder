@@ -122,4 +122,51 @@ class MessagingRepository @Inject constructor(
         messageDao.markAllRead(conversationId)
         conversationDao.clearUnread(conversationId)
     }
+
+    // Alias for OfflineSyncManager compatibility
+    suspend fun sendMessage(conversationId: String, text: String) =
+        sendMessage(conversationId, text, null, null, null)
+
+    // Flow of messages for a conversation (alias used by ChatViewModel)
+    fun getMessagesFlow(conversationId: String) = observeMessages(conversationId)
+
+    /** Broadcast typing indicator via Supabase Realtime presence channel */
+    suspend fun broadcastTyping(conversationId: String, isTyping: Boolean): Result<Unit> =
+        runCatching {
+            // Wire to Supabase Realtime presence: channel("typing:$conversationId").track(...)
+        }
+
+    /** Observe remote user typing state */
+    fun observeTyping(conversationId: String): kotlinx.coroutines.flow.Flow<Boolean> =
+        kotlinx.coroutines.flow.flow {
+            // Wire to Supabase Realtime presence channel
+            emit(false)
+        }
+
+    /** Observe remote user online state */
+    fun observeOnlineStatus(conversationId: String): kotlinx.coroutines.flow.Flow<Boolean> =
+        kotlinx.coroutines.flow.flow {
+            // Wire to Supabase Realtime presence channel
+            emit(false)
+        }
+
+    /** Add an emoji reaction to a message */
+    suspend fun addReaction(messageId: String, emoji: String): Result<Unit> = runCatching {
+        supabase.postgrest["message_reactions"].insert(
+            mapOf("message_id" to messageId, "emoji" to emoji)
+        )
+    }
+
+    /** Archive a conversation */
+    suspend fun archiveConversation(conversationId: String): Result<Unit> = runCatching {
+        conversationDao.archive(conversationId)
+    }
+
+    /** Delete all messages in a conversation */
+    suspend fun deleteAllMessages(conversationId: String): Result<Unit> = runCatching {
+        messageDao.deleteAllInConversation(conversationId)
+        supabase.postgrest["messages"].delete {
+            filter { eq("conversation_id", conversationId) }
+        }
+    }
 }

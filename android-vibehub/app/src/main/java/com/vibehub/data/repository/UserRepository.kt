@@ -104,4 +104,67 @@ class UserRepository @Inject constructor(
             )
         )
     }
+
+    suspend fun getCurrentUser(): Result<User> = runCatching {
+        val remote = supabase.postgrest["users"]
+            .select { limit(1) }
+            .decodeSingle<RemoteUser>()
+        remote.toDomain()
+    }
+
+    suspend fun getUserById(userId: String): Result<User> = runCatching {
+        userDao.getUser(userId)?.toDomain()
+            ?: run {
+                refreshUser(userId)
+                userDao.getUser(userId)?.toDomain() ?: User()
+            }
+    }
+
+    suspend fun getSuggestedUsers(): Result<List<User>> = runCatching {
+        val remote = supabase.postgrest["users"]
+            .select {
+                order("followers_count", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(20)
+            }
+            .decodeList<RemoteUser>()
+        remote.map { it.toDomain() }
+    }
+
+    suspend fun getFollowers(userId: String): Result<List<User>> = runCatching {
+        // Join follows → users to get follower profiles
+        userDao.getFollowers(userId).map { it.toDomain() }
+    }
+
+    suspend fun getFollowing(userId: String): Result<List<User>> = runCatching {
+        userDao.getFollowing(userId).map { it.toDomain() }
+    }
+
+    suspend fun toggleFollow(targetUserId: String): Result<Unit> = runCatching {
+        val current = userDao.getUser(targetUserId)
+        if (current?.isFollowedByMe == true) {
+            unfollowUser(targetUserId)
+        } else {
+            followUser(targetUserId)
+        }
+    }
+
+    suspend fun removeFollower(followerId: String): Result<Unit> = runCatching {
+        supabase.postgrest["follows"].delete {
+            filter { eq("follower_id", followerId) }
+        }
+    }
+
+    suspend fun blockUser(userId: String): Result<Unit> = runCatching {
+        supabase.postgrest["blocks"].insert(mapOf("blocked_id" to userId))
+        userDao.getUser(userId)?.copy(isBlockedByMe = true)?.let { userDao.upsertUser(it) }
+    }
+
+    suspend fun unblockUser(userId: String): Result<Unit> = runCatching {
+        supabase.postgrest["blocks"].delete { filter { eq("blocked_id", userId) } }
+        userDao.getUser(userId)?.copy(isBlockedByMe = false)?.let { userDao.upsertUser(it) }
+    }
+
+    suspend fun updateAccountPrivacy(isPrivate: Boolean): Result<Unit> = runCatching {
+        supabase.postgrest["users"].update(mapOf("is_private" to isPrivate))
+    }
 }

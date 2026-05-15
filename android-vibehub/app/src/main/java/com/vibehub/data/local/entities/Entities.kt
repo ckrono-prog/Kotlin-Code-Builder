@@ -27,9 +27,13 @@ data class UserEntity(
     val postsCount: Int,
     val joinedAt: String,
     val isFollowedByMe: Boolean,
+    val isFollowingMe: Boolean = false,
+    val isBlockedByMe: Boolean = false,
     val isPrivate: Boolean,
     val website: String,
     val pronouns: String,
+    val gender: String = "",
+    val birthday: String = "",
     val cachedAt: Long = System.currentTimeMillis(),
 )
 
@@ -86,6 +90,7 @@ data class ConversationEntity(
     val groupName: String?,
     val groupAvatarUrl: String?,
     val isMuted: Boolean,
+    val isArchived: Boolean = false,
     val theme: String,
     val isEncrypted: Boolean,
     val cachedAt: Long = System.currentTimeMillis(),

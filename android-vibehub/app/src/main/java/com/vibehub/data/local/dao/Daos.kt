@@ -28,6 +28,20 @@ interface UserDao {
 
     @Query("DELETE FROM users WHERE cachedAt < :before")
     suspend fun deleteStale(before: Long)
+
+    @Query("""
+        SELECT u.* FROM users u
+        INNER JOIN follows f ON u.id = f.follower_id
+        WHERE f.following_id = :userId
+    """)
+    suspend fun getFollowers(userId: String): List<UserEntity>
+
+    @Query("""
+        SELECT u.* FROM users u
+        INNER JOIN follows f ON u.id = f.following_id
+        WHERE f.follower_id = :userId
+    """)
+    suspend fun getFollowing(userId: String): List<UserEntity>
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -130,6 +144,9 @@ interface MessageDao {
 
     @Query("UPDATE messages SET text = :newText, isEdited = 1 WHERE id = :messageId")
     suspend fun editMessage(messageId: String, newText: String)
+
+    @Query("DELETE FROM messages WHERE conversationId = :conversationId")
+    suspend fun deleteAllInConversation(conversationId: String)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -153,6 +170,12 @@ interface ConversationDao {
 
     @Query("UPDATE conversations SET unreadCount = 0 WHERE id = :conversationId")
     suspend fun clearUnread(conversationId: String)
+
+    @Query("UPDATE conversations SET isArchived = 1 WHERE id = :conversationId")
+    suspend fun archive(conversationId: String)
+
+    @Query("UPDATE conversations SET isArchived = 0 WHERE id = :conversationId")
+    suspend fun unarchive(conversationId: String)
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
