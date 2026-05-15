@@ -3,8 +3,10 @@ package com.vibehub.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vibehub.data.repository.FeedRepository
+import com.vibehub.data.repository.UserRepository
 import com.vibehub.domain.model.Post
 import com.vibehub.domain.model.Story
+import com.vibehub.util.RateLimiter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,31 +19,30 @@ data class FeedUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val page: Int = 0,
+    val insightsPost: Post? = null,
 )
 
 @HiltViewModel
 class FeedViewModel @Inject constructor(
     private val feedRepository: FeedRepository,
+    private val userRepository: UserRepository,
+    private val rateLimiter: RateLimiter,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FeedUiState())
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
     init {
-        // Observe local DB
         viewModelScope.launch {
-            feedRepository.observeFeed()
-                .collect { posts ->
-                    _uiState.update { it.copy(posts = posts) }
-                }
+            feedRepository.observeFeed().collect { posts ->
+                _uiState.update { it.copy(posts = posts) }
+            }
         }
         viewModelScope.launch {
-            feedRepository.observeStories()
-                .collect { stories ->
-                    _uiState.update { it.copy(stories = stories) }
-                }
+            feedRepository.observeStories().collect { stories ->
+                _uiState.update { it.copy(stories = stories) }
+            }
         }
-        // Initial fetch
         refresh()
     }
 
@@ -64,6 +65,7 @@ class FeedViewModel @Inject constructor(
     }
 
     fun toggleLike(post: Post) = viewModelScope.launch {
+        if (!rateLimiter.tryAcquire(RateLimiter.Action.LIKE)) return@launch
         feedRepository.toggleLike(post.id, post.isLikedByMe)
     }
 
@@ -73,6 +75,22 @@ class FeedViewModel @Inject constructor(
 
     fun markStoryViewed(storyId: String) = viewModelScope.launch {
         feedRepository.markStoryViewed(storyId)
+    }
+
+    fun followAuthor(authorId: String) = viewModelScope.launch {
+        if (!rateLimiter.tryAcquire(RateLimiter.Action.FOLLOW)) {
+            _uiState.update { it.copy(error = rateLimiter.errorMessage(RateLimiter.Action.FOLLOW)) }
+            return@launch
+        }
+        userRepository.toggleFollow(authorId)
+    }
+
+    fun openInsights(post: Post) {
+        _uiState.update { it.copy(insightsPost = post) }
+    }
+
+    fun closeInsights() {
+        _uiState.update { it.copy(insightsPost = null) }
     }
 
     fun clearError() = _uiState.update { it.copy(error = null) }

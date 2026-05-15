@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,16 +31,18 @@ import com.vibehub.ui.viewmodel.FeedViewModel
 fun HomeFeedScreen(
     onNavigateToProfile: (String) -> Unit,
     onNavigateToReels: () -> Unit,
+    onNavigateToComments: (String) -> Unit,
+    onNavigateToCreate: () -> Unit,
+    onNavigateToChat: (String) -> Unit,
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 
-    // Load more when near bottom
     val shouldLoadMore by remember {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            lastVisible >= listState.layoutInfo.totalItemsCount - 3
+            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            last >= listState.layoutInfo.totalItemsCount - 3
         }
     }
     LaunchedEffect(shouldLoadMore) {
@@ -48,10 +51,7 @@ fun HomeFeedScreen(
 
     val pullState = rememberPullToRefreshState()
     if (pullState.isRefreshing) {
-        LaunchedEffect(Unit) {
-            viewModel.refresh()
-            pullState.endRefresh()
-        }
+        LaunchedEffect(Unit) { viewModel.refresh(); pullState.endRefresh() }
     }
 
     Box(modifier = Modifier.fillMaxSize().nestedScroll(pullState.nestedScrollConnection)) {
@@ -60,137 +60,88 @@ fun HomeFeedScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp),
         ) {
-            // ── Top app bar ────────────────────────────────────────────────
-            item {
-                FeedTopBar(onNavigateToMessages = {})
-            }
-
-            // ── Stories row ───────────────────────────────────────────────
+            item { FeedTopBar(onNavigateToMessages = {}) }
             item {
                 StoriesRow(
-                    stories = uiState.stories,
+                    stories      = uiState.stories,
                     onStoryClick = { viewModel.markStoryViewed(it.id) },
-                    onAddStory = {},
+                    onAddStory   = {},
                 )
             }
+            item { CreatePostBar(avatarUrl = "", onClick = onNavigateToCreate) }
 
-            // ── Create post bar ───────────────────────────────────────────
-            item {
-                CreatePostBar(avatarUrl = "")
-            }
-
-            // ── Posts ─────────────────────────────────────────────────────
             items(uiState.posts, key = { it.id }) { post ->
                 PostCard(
-                    post = post,
-                    onLike    = { viewModel.toggleLike(post) },
-                    onSave    = { viewModel.toggleSave(post) },
-                    onComment = {},
-                    onShare   = {},
+                    post          = post,
+                    onLike        = { viewModel.toggleLike(post) },
+                    onSave        = { viewModel.toggleSave(post) },
+                    onComment     = { onNavigateToComments(post.id) },
+                    onShare       = {},
                     onAuthorClick = { onNavigateToProfile(post.authorId) },
+                    onFollow      = { viewModel.followAuthor(post.authorId) },
+                    onSendMessage = { onNavigateToChat(post.authorId) },
+                    onShowInsights = { viewModel.openInsights(post) },
                 )
             }
 
             if (uiState.isLoading) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = VibePink, modifier = Modifier.size(28.dp))
                     }
                 }
             }
         }
-
         PullToRefreshContainer(state = pullState, modifier = Modifier.align(Alignment.TopCenter))
     }
 }
 
-// ─── Top Bar ─────────────────────────────────────────────────────────────────
+// ─── Top Bar ──────────────────────────────────────────────────────────────────
 
 @Composable
 private fun FeedTopBar(onNavigateToMessages: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             VibeAvatar(imageUrl = "", size = 40.dp, hasStory = false)
             Spacer(Modifier.width(10.dp))
             Column {
-                Text("Hello, Armenam 👋", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text("What's on your mind?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text("Hello 👋", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("What's on your mind?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
             }
         }
-        IconButton(onClick = {}) {
-            Icon(Icons.Outlined.Search, contentDescription = "Search")
-        }
-        IconButton(onClick = onNavigateToMessages) {
-            Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "Messages")
-        }
+        IconButton(onClick = {}) { Icon(Icons.Outlined.Search, null) }
+        IconButton(onClick = onNavigateToMessages) { Icon(Icons.Outlined.ChatBubbleOutline, null) }
     }
 }
 
-// ─── Stories Row ─────────────────────────────────────────────────────────────
+// ─── Stories Row ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun StoriesRow(
-    stories: List<Story>,
-    onStoryClick: (Story) -> Unit,
-    onAddStory: () -> Unit,
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+private fun StoriesRow(stories: List<Story>, onStoryClick: (Story) -> Unit, onAddStory: () -> Unit) {
+    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            StoryCircle(
-                imageUrl = "",
-                label    = "Your note",
-                hasStory = false,
-                isAdd    = true,
-                onClick  = onAddStory,
-            )
+            StoryCircle(imageUrl = "", label = "Your story", hasStory = false, isAdd = true, onClick = onAddStory)
         }
-        items(stories.take(10), key = { it.id }) { story ->
-            StoryCircle(
-                imageUrl = story.author.avatarUrl,
-                label    = story.author.displayName.take(8),
-                hasStory = true,
-                isViewed = story.isViewedByMe,
-                isLive   = false,
-                onClick  = { onStoryClick(story) },
-            )
+        items(stories.take(12), key = { it.id }) { story ->
+            StoryCircle(imageUrl = story.author.avatarUrl, label = story.author.displayName.take(8),
+                hasStory = true, isViewed = story.isViewedByMe, onClick = { onStoryClick(story) })
         }
     }
 }
 
 @Composable
 private fun StoryCircle(
-    imageUrl: String,
-    label: String,
-    hasStory: Boolean,
-    isViewed: Boolean = false,
-    isLive: Boolean   = false,
-    isAdd: Boolean    = false,
-    onClick: () -> Unit,
+    imageUrl: String, label: String, hasStory: Boolean, isViewed: Boolean = false,
+    isLive: Boolean = false, isAdd: Boolean = false, onClick: () -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
         Box {
             VibeAvatar(imageUrl = imageUrl, size = 64.dp, hasStory = hasStory, isViewed = isViewed, isLive = isLive)
             if (isAdd) {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .align(Alignment.BottomEnd)
-                        .clip(CircleShape)
-                        .background(VibeGradient),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = Modifier.size(22.dp).align(Alignment.BottomEnd).clip(CircleShape).background(VibeGradient), contentAlignment = Alignment.Center) {
                     Icon(Icons.Filled.Add, null, tint = Color.White, modifier = Modifier.size(14.dp))
                 }
             }
@@ -203,13 +154,11 @@ private fun StoryCircle(
 // ─── Create Post Bar ──────────────────────────────────────────────────────────
 
 @Composable
-private fun CreatePostBar(avatarUrl: String) {
+private fun CreatePostBar(avatarUrl: String, onClick: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape  = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape    = RoundedCornerShape(16.dp),
+        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp),
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -217,38 +166,30 @@ private fun CreatePostBar(avatarUrl: String) {
                 VibeAvatar(imageUrl = avatarUrl, size = 38.dp)
                 Spacer(Modifier.width(10.dp))
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(19.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable {},
+                    modifier = Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(19.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant).clickable(onClick = onClick),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    Text("Share your thoughts...", modifier = Modifier.padding(horizontal = 16.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                    Text("Share your thoughts…", modifier = Modifier.padding(horizontal = 16.dp),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(0.4f))
                 }
             }
             Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                MediaActionChip(Icons.Outlined.Image, "Photo", Color(0xFF1877F2))
-                MediaActionChip(Icons.Outlined.Videocam, "Video", VibePink)
-                MediaActionChip(Icons.Outlined.EmojiEmotions, "Feeling", VibeGold)
+                MediaActionChip(Icons.Outlined.Image,    "Photo",   Color(0xFF1877F2), onClick)
+                MediaActionChip(Icons.Outlined.Videocam, "Video",   VibePink,          onClick)
+                MediaActionChip(Icons.Outlined.TextFields, "Text",  VibeGold,          onClick)
+                MediaActionChip(Icons.Outlined.EmojiEmotions, "Feeling", VibeOrange,   onClick)
             }
         }
     }
 }
 
 @Composable
-private fun MediaActionChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color) {
-    Row(
-        modifier = Modifier.clickable {},
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
+private fun MediaActionChip(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, tint: Color, onClick: () -> Unit) {
+    Row(modifier = Modifier.clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(icon, label, tint = tint, modifier = Modifier.size(18.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.7f))
     }
 }
 
@@ -262,25 +203,25 @@ fun PostCard(
     onComment: () -> Unit,
     onShare: () -> Unit,
     onAuthorClick: () -> Unit,
+    onFollow: () -> Unit = {},
+    onSendMessage: () -> Unit = {},
+    onShowInsights: () -> Unit = {},
 ) {
+    var showInsights by remember { mutableStateOf(false) }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        shape  = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier  = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+        shape     = RoundedCornerShape(20.dp),
+        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp),
     ) {
         Column {
-            // Author header
+            // ── Author header ──────────────────────────────────────────────
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                VibeAvatar(imageUrl = post.author.avatarUrl, size = 42.dp,
-                    modifier = Modifier.clickable(onClick = onAuthorClick))
+                VibeAvatar(imageUrl = post.author.avatarUrl, size = 42.dp, modifier = Modifier.clickable(onClick = onAuthorClick))
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f).clickable(onClick = onAuthorClick)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -288,95 +229,107 @@ fun PostCard(
                         if (post.author.isVerified) VerifiedBadge(14.dp)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(post.createdAt.take(10), style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                        Icon(Icons.Filled.Public, null, modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                        Text(post.createdAt.take(10), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.5f))
+                        // Location tag
+                        post.location.takeIf { it.isNotBlank() }?.let { loc ->
+                            Icon(Icons.Filled.LocationOn, null, modifier = Modifier.size(10.dp), tint = VibePink)
+                            Text(loc.take(20), style = MaterialTheme.typography.labelSmall, color = VibePink, maxLines = 1)
+                        }
                     }
                 }
-                IconButton(onClick = {}) {
-                    Icon(Icons.Filled.MoreVert, null, modifier = Modifier.size(20.dp))
+
+                // Follow button — shown when not following
+                if (!post.author.isFollowedByMe) {
+                    TextButton(
+                        onClick = onFollow,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text("Follow", color = VibePink, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    }
                 }
+
+                IconButton(onClick = {}) { Icon(Icons.Filled.MoreVert, null, modifier = Modifier.size(20.dp)) }
             }
 
-            // Caption
+            // ── Song chip ──────────────────────────────────────────────────
+            // (post.musicTrack would show here if set)
+
+            // ── Caption ────────────────────────────────────────────────────
             if (post.caption.isNotBlank()) {
-                Text(
-                    text = post.caption,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 14.dp),
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Text(post.caption, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 14.dp), maxLines = 4, overflow = TextOverflow.Ellipsis)
                 if (post.hashtags.isNotEmpty()) {
-                    Text(
-                        text = post.hashtags.take(5).joinToString(" ") { "#$it" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = VibePink,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
-                    )
+                    Text(post.hashtags.take(5).joinToString(" ") { "#$it" }, style = MaterialTheme.typography.bodySmall, color = VibePink, modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp))
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
             }
 
-            // Media
+            // ── Media ──────────────────────────────────────────────────────
             if (post.mediaUrls.isNotEmpty()) {
                 AsyncImage(
-                    model = post.mediaUrls.first(),
+                    model            = post.mediaUrls.first(),
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(post.aspectRatio.coerceIn(0.5f, 1.91f)),
+                    contentScale     = ContentScale.Crop,
+                    modifier         = Modifier.fillMaxWidth().aspectRatio(post.aspectRatio.coerceIn(0.5f, 1.91f)),
                 )
             }
 
-            // Reaction summary
+            // ── Reaction + view summary ────────────────────────────────────
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(
-                        modifier = Modifier.size(18.dp).clip(CircleShape).background(VibePink),
-                        contentAlignment = Alignment.Center,
-                    ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(modifier = Modifier.size(18.dp).clip(CircleShape).background(VibePink), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.Favorite, null, tint = Color.White, modifier = Modifier.size(10.dp))
                     }
-                    Text(formatCount(post.likesCount), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Text(formatCount(post.likesCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.6f))
                 }
-                Text("${formatCount(post.commentsCount)} Comments", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                // Views count (tappable for owner insights)
+                Row(
+                    modifier = Modifier.clickable { showInsights = true },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(Icons.Outlined.Visibility, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurface.copy(0.4f))
+                    Text(formatLong(post.viewsCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.6f))
+                }
+                Text("${formatCount(post.commentsCount)} Comments", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(0.6f),
+                    modifier = Modifier.clickable(onClick = onComment))
             }
 
-            Divider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(thickness = 0.5.dp)
 
-            // Action bar
+            // ── Action bar ─────────────────────────────────────────────────
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                PostActionButton(
-                    icon  = if (post.isLikedByMe) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
-                    label = "Like",
-                    tint  = if (post.isLikedByMe) VibePink else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    onClick = onLike,
-                )
+                PostActionButton(if (post.isLikedByMe) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp, "Like",
+                    tint = if (post.isLikedByMe) VibePink else MaterialTheme.colorScheme.onSurface.copy(0.6f), onClick = onLike)
                 PostActionButton(Icons.Outlined.ChatBubbleOutline, "Comment", onClick = onComment)
+                // DM button — send post to someone
+                PostActionButton(Icons.Outlined.Send, "Send", onClick = onSendMessage)
                 PostActionButton(Icons.Outlined.BookmarkBorder, "Save",
-                    tint = if (post.isSavedByMe) VibePink else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    onClick = onSave)
+                    tint = if (post.isSavedByMe) VibePink else MaterialTheme.colorScheme.onSurface.copy(0.6f), onClick = onSave)
             }
 
-            // First comment preview
             Spacer(Modifier.height(4.dp))
         }
+    }
+
+    // Post insights sheet (for owner)
+    if (showInsights) {
+        PostInsightsSheet(
+            viewCount       = post.viewsCount,
+            likeCount       = post.likesCount,
+            commentCount    = post.commentsCount,
+            shareCount      = post.sharesCount,
+            saveCount       = post.savesCount,
+            reactions       = emptyList(),
+            recentViewers   = emptyList(),
+            onDismiss       = { showInsights = false },
+        )
     }
 }
 
