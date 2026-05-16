@@ -1,0 +1,56 @@
+declare -gx DOCKER_CONFIG=/home/runner/workspace/.config/docker
+declare -gx REPLIT_RIPPKGS_INDICES=/nix/store/cg6q7dm7h9jp20vwj79ahnbsd9cs6iay-rippkgs-indices
+declare -gx LOCALE_ARCHIVE=/usr/lib/locale/locale-archive
+declare -gx CONNECTORS_HOSTNAME=connectors.replit.com
+declare -gx REPLIT_CONTAINER=repl
+declare -gx PROMPT_DIRTRIM=2
+declare -gx NIX_PATH=/home/runner/.nix-defexpr/channels
+declare -gx REPLIT_PID1_VERSION=0.0.236
+declare -gx REPLIT_NIX_CHANNEL=legacy
+declare -gx REPL_HOME=/home/runner/workspace
+declare -gx PGPORT=5432
+declare -gx REPLIT_CONNECTORS_HOSTNAME=connectors.replit.com
+declare -gx REPL_OWNER_ID=57641391
+declare -gx COLORTERM=truecolor
+declare -gx TZDIR=/etc/zoneinfo
+declare -gx DISPLAY=:0
+declare -gx REPLIT_HELIUM_ENABLED=true
+declare -gx REPLIT_DOMAINS=92a7d2e8-03b1-4177-bac9-67b616264435-00-8snh80ai5gr7.picard.replit.dev
+declare -gx GIT_EDITOR=replit-git-editor
+declare -gx GIT_ASKPASS=replit-git-askpass
+declare -gx NIX_PS1='\[\033[01;34m\]\w\[\033[00m\]\$ '
+declare -gx LANG=en_US.UTF-8
+declare -gx REPLIT_BASHRC=/nix/store/lsgsb0ar7rdwa09d1z2dnfjh4188pddk-replit-bashrc/bashrc
+declare -gx __EGL_VENDOR_LIBRARY_FILENAMES=/nix/store/l4myp7qn0q9bqgmkqq4vnnii22ql1r68-mesa-25.0.7/share/glvnd/egl_vendor.d/50_mesa.json
+declare -gx PGUSER=postgres
+declare -gx REPL_ID=92a7d2e8-03b1-4177-bac9-67b616264435
+declare -gx REPLIT_LD_AUDIT=/nix/store/sj11ljhx4n79h9g0167f8lg8hp7n545m-replit_rtld_loader-1/rtld_loader.so
+read -r _new_path <<< "/nix/store/17prmkcmwjif1sbpgpfb12dn94psc4gd-npx/bin:/home/runner/workspace/.config/npm/node_global/bin:/home/runner/workspace/node_modules/.bin:/nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin:/nix/store/1xk3mgscq548ypyrgm2n5kwdii92w9ql-bun-1.3.6/bin:/nix/store/61lr9izijvg30pcribjdxgjxvh3bysp4-pnpm-10.26.1/bin:/nix/store/23078nfww258q1vjxbmyak0svvxcvj4s-yarn-1.22.22/bin:/nix/store/8sa75mbvbn3kxicggyyjggmkigvzddks-prettier-3.6.2/bin:/nix/store/9yq8vclill7pmsxfj74762c9b0xrwxkx-pid1/bin:/nix/store/d10czjzvvk0f6diryazjgrfjmvdibkkd-replit-runtime-path/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+#PATH=/nix/store/17prmkcmwjif1sbpgpfb12dn94psc4gd-npx/bin:/home/runner/workspace/.config/npm/node_global/bin:/home/runner/workspace/node_modules/.bin:/nix/store/s7awkfc4pym4zj139fsxrjs5xwf5hhnd-nodejs-24.13.0-wrapped/bin:/nix/store/1xk3mgscq548ypyrgm2n5kwdii92w9ql-bun-1.3.6/bin:/nix/store/61lr9izijvg30pcribjdxgjxvh3bysp4-pnpm-10.26.1/bin:/nix/store/23078nfww258q1vjxbmyak0svvxcvj4s-yarn-1.22.22/bin:/nix/store/8sa75mbvbn3kxicggyyjggmkigvzddks-prettier-3.6.2/bin:/nix/store/9yq8vclill7pmsxfj74762c9b0xrwxkx-pid1/bin:/nix/store/d10czjzvvk0f6diryazjgrfjmvdibkkd-replit-runtime-path/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+if [ -e "/run/replit/env/last" ]; then read -r _last_path < <(\grep '^#PATH=' /run/replit/env/last | cut -f 2 -d =); fi
+_user_components="$(\tr : $'\n' <<< "${PATH:-}" |\grep -xv -f <(\tr : $'\n' <<< "${_last_path}") |\tr $'\n' :)"
+declare -gx PATH="${_user_components}${_new_path}"
+declare -gx REPLIT_ARTIFACT_ROUTER=/nix/store/mcy1kl5dlr0l1gpv6z21bkabyylx0wjb-artifact-router-0.1.0/bin/artifact-router
+declare -gx PID2_SHELL_CGROUP_NAMESPACE=1
+declare -gx PGPASSWORD=password
+declare -gx DATABASE_URL='postgresql://postgres:password@helium/heliumdb?sslmode=disable'
+declare -gx PGHOST=helium
+declare -gx REPLIT_RTLD_LOADER=1
+declare -gx REPLIT_EXPO_DEV_DOMAIN=92a7d2e8-03b1-4177-bac9-67b616264435-00-8snh80ai5gr7.expo.picard.replit.dev
+declare -gx HOME=/home/runner
+declare -gx LIBGL_DRIVERS_PATH=/nix/store/l4myp7qn0q9bqgmkqq4vnnii22ql1r68-mesa-25.0.7/lib/dri
+declare -gx PGDATABASE=heliumdb
+declare -gx REPL_SLUG=workspace
+declare -gx XDG_CACHE_HOME=/home/runner/workspace/.cache
+declare -gx XDG_DATA_DIRS=/nix/store/d10czjzvvk0f6diryazjgrfjmvdibkkd-replit-runtime-path/share
+declare -gx REPLIT_CLI=/nix/store/pjjdi4mgzxj5r4j4w5vqiv2wli2dggi7-replit-cli-0.0.1/bin/replit
+declare -gx REPLIT_CLUSTER=picard
+declare -gx XDG_DATA_HOME=/home/runner/workspace/.local/share
+declare -gx npm_config_prefix=/home/runner/workspace/.config/npm/node_global
+declare -gx REPL_PUBKEYS='{"crosis-ci":"7YlpcYh82oR9NSTtSYtR5jDL4onNzCGJGq6b+9CuZII=","crosis-ci:1":"7YlpcYh82oR9NSTtSYtR5jDL4onNzCGJGq6b+9CuZII=","crosis-ci:latest":"7YlpcYh82oR9NSTtSYtR5jDL4onNzCGJGq6b+9CuZII=","prod":"tGsjlu/BJvWTgvMaX7acuUb7AO1dXOrRiuk7y083RFE=","prod:1":"tGsjlu/BJvWTgvMaX7acuUb7AO1dXOrRiuk7y083RFE=","prod:3":"9+MCOSHQSQlcodXoot8dC8NLhc862nLkx1/VMsbY2h8=","prod:4":"8uGN+vfszlnV93/HCSHlVLG0xddMlPkir1Ni4JKT4+w=","prod:5":"9+MCOSHQSQlcodXoot8dC8NLhc862nLkx1/VMsbY2h8=","prod:latest":"tGsjlu/BJvWTgvMaX7acuUb7AO1dXOrRiuk7y083RFE=","vault-goval-token":"D5jJoMx1Ml54HM92NLgXl+MzptwDqbSsfyFG6f52g9E=","vault-goval-token:1":"D5jJoMx1Ml54HM92NLgXl+MzptwDqbSsfyFG6f52g9E=","vault-goval-token:latest":"D5jJoMx1Ml54HM92NLgXl+MzptwDqbSsfyFG6f52g9E="}'
+declare -gx REPL_OWNER=venturespromoti
+declare -gx REPL_IN_MICROVM=true
+declare -gx REPLIT_DEV_DOMAIN=92a7d2e8-03b1-4177-bac9-67b616264435-00-8snh80ai5gr7.picard.replit.dev
+declare -gx REPL_LANGUAGE=nix
+declare -gx NIXPKGS_ALLOW_UNFREE=1
+declare -gx XDG_CONFIG_HOME=/home/runner/workspace/.config
