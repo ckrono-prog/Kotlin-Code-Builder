@@ -199,4 +199,3 @@ private fun SettingToggleRow(
     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.3.dp)
 }
 
-private fun androidx.compose.foundation.layout.BoxScope.clickable(onClick: () -> Unit): Modifier = Modifier

@@ -60,6 +60,32 @@ fun RemoteNotification.toEntity() = NotificationEntity(
 )
 
 // ──────────────────────────────────────────────────────────
+// Remote → Domain (bypass Room, for one-shot queries)
+// ──────────────────────────────────────────────────────────
+
+fun RemoteUser.toDomain() = User(
+    id = id, username = username, displayName = displayName,
+    avatarUrl = avatarUrl, coverUrl = coverUrl, bio = bio,
+    location = location, isVerified = isVerified, isPremium = isPremium,
+    followersCount = followersCount, followingCount = followingCount,
+    postsCount = postsCount, joinedAt = joinedAt,
+    isFollowedByMe = false, isFollowingMe = false, isBlockedByMe = false,
+    isPrivate = isPrivate, website = website, pronouns = pronouns,
+)
+
+fun RemotePost.toDomain(authorUser: User = User()) = Post(
+    id = id, authorId = authorId, author = authorUser,
+    caption = caption, mediaUrls = mediaUrls,
+    mediaType = runCatching { MediaType.valueOf(mediaType) }.getOrElse { MediaType.IMAGE },
+    likesCount = likesCount, commentsCount = commentsCount,
+    savesCount = savesCount, sharesCount = sharesCount, viewsCount = viewsCount,
+    hashtags = hashtags, isLikedByMe = false, isSavedByMe = false,
+    createdAt = createdAt, location = location,
+    visibility = runCatching { PostVisibility.valueOf(visibility) }.getOrElse { PostVisibility.PUBLIC },
+    isPinned = isPinned, aspectRatio = aspectRatio,
+)
+
+// ──────────────────────────────────────────────────────────
 // Entity → Domain model (feed to UI)
 // ──────────────────────────────────────────────────────────
 

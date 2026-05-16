@@ -2,7 +2,6 @@ package com.vibehub.data.repository
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.user.UserSession
@@ -16,13 +15,13 @@ class AuthRepository @Inject constructor(
     private val supabase: SupabaseClient,
 ) {
     val currentSession: Flow<UserSession?> = supabase.auth.sessionStatus
-        .map { status ->
-            // Return the session if authenticated, null otherwise
-            runCatching { supabase.auth.currentSessionOrNull() }.getOrNull()
-        }
+        .map { runCatching { supabase.auth.currentSessionOrNull() }.getOrNull() }
 
     val currentUserId: String?
         get() = runCatching { supabase.auth.currentUserOrNull()?.id }.getOrNull()
+
+    val currentUserEmail: String?
+        get() = runCatching { supabase.auth.currentUserOrNull()?.email }.getOrNull()
 
     /** Sign up with email + password */
     suspend fun signUpWithEmail(email: String, password: String): Result<Unit> =
@@ -42,28 +41,23 @@ class AuthRepository @Inject constructor(
             }
         }
 
-    /** Send OTP to phone for verification */
-    suspend fun sendOtp(phone: String): Result<Unit> =
+    /** Verify email OTP (sent automatically by Supabase on signup) */
+    suspend fun verifyEmailOtp(email: String, token: String): Result<Unit> =
         runCatching {
-            supabase.auth.signInWith(OTP) {
-                this.phone = phone
-            }
-        }
-
-    /** Verify OTP code */
-    suspend fun verifyOtp(phone: String, token: String): Result<Unit> =
-        runCatching {
-            supabase.auth.verifyPhoneOtp(
-                phone = phone,
+            supabase.auth.verifyEmailOtp(
+                email = email,
                 token = token,
-                type  = io.github.jan.supabase.auth.providers.builtin.Phone.Type.SMS,
+                type  = io.github.jan.supabase.auth.providers.builtin.Email.Type.EMAIL,
             )
         }
 
-    /** Sign in with Google OAuth */
-    suspend fun signInWithGoogle(): Result<Unit> =
+    /** Resend email OTP */
+    suspend fun resendOtp(email: String): Result<Unit> =
         runCatching {
-            supabase.auth.signInWith(Google)
+            supabase.auth.resendEmail(
+                type  = io.github.jan.supabase.auth.providers.builtin.Email.Type.SIGNUP,
+                email = email,
+            )
         }
 
     /** Send password reset email */
@@ -75,16 +69,24 @@ class AuthRepository @Inject constructor(
     /** Update password */
     suspend fun updatePassword(newPassword: String): Result<Unit> =
         runCatching {
-            supabase.auth.updateUser {
-                password = newPassword
-            }
+            supabase.auth.updateUser { password = newPassword }
         }
 
-    /** Sign out */
+    /** Sign out — call from SettingsViewModel or AuthViewModel */
     suspend fun signOut(): Result<Unit> =
-        runCatching {
-            supabase.auth.signOut()
-        }
+        runCatching { supabase.auth.signOut() }
+
+    /** Alias used by SettingsViewModel */
+    suspend fun logout(): Result<Unit> = signOut()
 
     fun isLoggedIn(): Boolean = currentUserId != null
+
+    fun isEmailConfirmed(): Boolean =
+        runCatching { supabase.auth.currentUserOrNull()?.emailConfirmedAt != null }.getOrElse { false }
+
+    fun needsProfileSetup(): Boolean {
+        // After sign-up, the user exists in auth.users but not yet in public.profiles.
+        // The ProfileSetupScreen will check this via UserRepository.getCurrentUser().
+        return isLoggedIn()
+    }
 }

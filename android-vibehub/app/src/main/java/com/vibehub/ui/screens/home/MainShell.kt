@@ -31,11 +31,11 @@ sealed class BottomTab(
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
 ) {
-    object Home     : BottomTab(0, "Home",    Icons.Filled.Home,            Icons.Outlined.Home)
-    object Friends  : BottomTab(1, "Friends", Icons.Filled.People,          Icons.Outlined.People)
-    object Create   : BottomTab(2, "Create",  Icons.Filled.AddCircle,       Icons.Outlined.AddCircle)
-    object Notif    : BottomTab(3, "Alerts",  Icons.Filled.Notifications,   Icons.Outlined.Notifications)
-    object Menu     : BottomTab(4, "Menu",    Icons.Filled.Menu,            Icons.Outlined.Menu)
+    object Home    : BottomTab(0, "Home",    Icons.Filled.Home,          Icons.Outlined.Home)
+    object Friends : BottomTab(1, "Friends", Icons.Filled.People,        Icons.Outlined.People)
+    object Create  : BottomTab(2, "Create",  Icons.Filled.AddCircle,     Icons.Outlined.AddCircle)
+    object Notif   : BottomTab(3, "Alerts",  Icons.Filled.Notifications, Icons.Outlined.Notifications)
+    object Menu    : BottomTab(4, "Menu",    Icons.Filled.Menu,          Icons.Outlined.Menu)
 }
 
 private val TABS = listOf(BottomTab.Home, BottomTab.Friends, BottomTab.Create, BottomTab.Notif, BottomTab.Menu)
@@ -44,6 +44,10 @@ private val TABS = listOf(BottomTab.Home, BottomTab.Friends, BottomTab.Create, B
 fun MainShell(
     onNavigateToProfile: (String) -> Unit,
     onNavigateToChat: (String) -> Unit,
+    onNavigateToComments: (String) -> Unit,
+    onNavigateToCreate: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToVideoCapture: () -> Unit,
     onLogout: () -> Unit,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -53,8 +57,10 @@ fun MainShell(
     Scaffold(
         bottomBar = {
             VibeBottomNav(
-                selectedIndex  = selectedTab,
-                onTabSelected  = { selectedTab = it },
+                selectedIndex    = selectedTab,
+                onTabSelected    = { idx ->
+                    if (idx == 2) onNavigateToCreate() else selectedTab = idx
+                },
                 unreadNotifCount = notifState.unreadCount,
             )
         },
@@ -63,20 +69,25 @@ fun MainShell(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (selectedTab) {
                 0 -> HomeFeedScreen(
-                    onNavigateToProfile = onNavigateToProfile,
-                    onNavigateToReels   = { selectedTab = 1 },
+                    onNavigateToProfile  = onNavigateToProfile,
+                    onNavigateToReels    = { selectedTab = 1 },
+                    onNavigateToComments = onNavigateToComments,
+                    onNavigateToCreate   = onNavigateToCreate,
+                    onNavigateToChat     = onNavigateToChat,
                 )
                 1 -> ExploreScreen(onNavigateToProfile = onNavigateToProfile)
-                2 -> CreatePostPlaceholder()
                 3 -> NotificationsScreen(onNavigateToProfile = onNavigateToProfile)
                 4 -> MenuScreen(
-                    onNavigateToProfile = onNavigateToProfile,
-                    onLogout = onLogout,
+                    onNavigateToProfile  = onNavigateToProfile,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onLogout             = onLogout,
                 )
             }
         }
     }
 }
+
+// ─── Bottom Navigation ────────────────────────────────────────────────────────
 
 @Composable
 private fun VibeBottomNav(
@@ -96,34 +107,22 @@ private fun VibeBottomNav(
                 icon = {
                     if (tab == BottomTab.Create) {
                         Box(
-                            modifier = Modifier
-                                .size(52.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(VibeGradient),
+                            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(50)).background(VibeGradient),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(Icons.Filled.Add, contentDescription = "Create", tint = Color.White, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Filled.Add, "Create", tint = Color.White, modifier = Modifier.size(28.dp))
                         }
                     } else {
-                        BadgedBox(
-                            badge = {
-                                if (tab == BottomTab.Notif && unreadNotifCount > 0) {
-                                    Badge { Text(unreadNotifCount.coerceAtMost(99).toString()) }
-                                }
-                            },
-                        ) {
-                            Icon(
-                                imageVector = if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                contentDescription = tab.label,
-                            )
+                        BadgedBox(badge = {
+                            if (tab == BottomTab.Notif && unreadNotifCount > 0) {
+                                Badge { Text(unreadNotifCount.coerceAtMost(99).toString()) }
+                            }
+                        }) {
+                            Icon(if (selected) tab.selectedIcon else tab.unselectedIcon, tab.label)
                         }
                     }
                 },
-                label = {
-                    if (tab != BottomTab.Create) {
-                        Text(tab.label, style = MaterialTheme.typography.labelSmall)
-                    }
-                },
+                label = { if (tab != BottomTab.Create) Text(tab.label, style = MaterialTheme.typography.labelSmall) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor   = VibePink,
                     selectedTextColor   = VibePink,
@@ -135,15 +134,18 @@ private fun VibeBottomNav(
     }
 }
 
-@Composable
-private fun CreatePostPlaceholder() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Camera / Post Creator", style = MaterialTheme.typography.titleMedium)
-    }
-}
+// ─── Menu / Profile tab ───────────────────────────────────────────────────────
 
 @Composable
-private fun MenuScreen(onNavigateToProfile: (String) -> Unit, onLogout: () -> Unit) {
-    // Inline with current user — userId would come from AuthRepository
-    ProfileScreen(onBack = {}, onNavigateToChat = {})
+private fun MenuScreen(
+    onNavigateToProfile: (String) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    ProfileScreen(
+        onBack              = {},
+        onNavigateToChat    = {},
+        onNavigateToFollowers = {},
+        onNavigateToFollowing = {},
+    )
 }

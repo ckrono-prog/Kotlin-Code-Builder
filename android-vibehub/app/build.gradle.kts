@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,12 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
+}
+
+// Read credentials from local.properties (never hard-code secrets in source)
+val localProps = Properties().also { props ->
+    val f = rootProject.file("local.properties")
+    if (f.exists()) props.load(f.inputStream())
 }
 
 android {
@@ -19,12 +27,15 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Supabase config — replace with your actual values
-        buildConfigField("String", "SUPABASE_URL", "\"https://YOUR_PROJECT.supabase.co\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"YOUR_ANON_KEY\"")
+        buildConfigField("String", "SUPABASE_URL",      "\"${localProps["supabase.url"]      ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps["supabase.anon.key"] ?: ""}\"")
+        buildConfigField("String", "SUPABASE_PROJECT_ID","\"${localProps["supabase.project.id"] ?: "aoeilzrcmbamyfhccxdp"}\"")
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -95,7 +106,7 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
-    // Security
+    // Security + Biometric
     implementation(libs.security.crypto)
     implementation(libs.biometric)
 
@@ -104,6 +115,7 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
+    implementation("androidx.camera:camera-video:1.3.3")
 
     // ExoPlayer / Media3
     implementation(libs.media3.exoplayer)
@@ -111,13 +123,16 @@ dependencies {
     implementation("androidx.media3:media3-datasource-cache:1.3.1")
     implementation("androidx.media3:media3-database:1.3.1")
 
-    // CameraX Video
-    implementation("androidx.camera:camera-video:1.3.3")
-
     // Accompanist
     implementation(libs.accompanist.permissions)
     implementation(libs.accompanist.systemuicontroller)
 
     // Serialization
     implementation(libs.kotlin.serialization)
+
+    // Play Services (for location)
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+
+    // Phone number formatting
+    implementation("com.googlecode.libphonenumber:libphonenumber:8.13.32")
 }

@@ -63,6 +63,9 @@ interface PostDao {
     @Query("SELECT * FROM posts WHERE id = :id")
     fun observePost(id: String): Flow<PostEntity?>
 
+    @Query("SELECT * FROM posts WHERE id = :id")
+    suspend fun getPost(id: String): PostEntity?
+
     @Query("SELECT * FROM posts WHERE mediaType = 'REEL' ORDER BY createdAt DESC")
     fun observeReels(): Flow<List<PostEntity>>
 
